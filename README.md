@@ -174,16 +174,8 @@ button:active{border-color:#eee;border-right-color:#222;border-bottom-color:#222
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 const DATA_URL="https://raw.githubusercontent.com/PrismarineJS/minecraft-data/master/data/pc/1.21.11/items.json";
-const TEXS=[
-  name=>`https://mcasset.cloud/1.21.11/assets/minecraft/textures/item/${name}.png`,
-  name=>`https://raw.githubusercontent.com/Faithful-Pack/Default-Java/1.21.11/assets/minecraft/textures/item/${name}.png`,
-  name=>`https://mcasset.cloud/1.21.11/assets/minecraft/textures/block/${name}.png`,
-  name=>`https://raw.githubusercontent.com/Faithful-Pack/Default-Java/1.21.11/assets/minecraft/textures/block/${name}.png`
-];
-const TEXTURE_ALIASES={
-  crossbow:'crossbow_standby',
-  bow:'bow_standby'
-};
+const TEX="https://raw.githubusercontent.com/Faithful-Pack/Default-Java/1.21.11/assets/minecraft/textures/item/";
+const BLOCK="https://raw.githubusercontent.com/Faithful-Pack/Default-Java/1.21.11/assets/minecraft/textures/block/";
 
 let items=[], selectedSlot=null, state={};
 const mainGrid=document.getElementById("mainGrid"), hotbar=document.getElementById("hotbar");
@@ -198,22 +190,11 @@ function makeSlots(){
 makeSlots();
 renderState();
 
-function iconCandidates(name){
-  const texName=TEXTURE_ALIASES[name]||name;
-  const urls=[];
-  for(const fn of TEXS) urls.push(fn(texName));
-  if(texName!==name) for(const fn of TEXS) urls.push(fn(name));
-  return urls;
+function iconUrl(name){
+  return TEX+name+".png";
 }
-function setImageWithFallback(img,name){
-  const urls=iconCandidates(name);
-  let i=0;
-  function next(){
-    if(i>=urls.length){ img.removeAttribute('src'); img.alt=name; return; }
-    img.src=urls[i++];
-  }
-  img.onerror=next;
-  next();
+function blockFallback(name){
+  return BLOCK+name+".png";
 }
 function setSlot(el,item,count=1){
   el.innerHTML="";
@@ -222,7 +203,8 @@ function setSlot(el,item,count=1){
   const img=document.createElement("img");
   img.crossOrigin="anonymous";
   img.alt=item.displayName||item.name;
-  setImageWithFallback(img,item.name);
+  img.src=iconUrl(item.name);
+  img.onerror=()=>{img.onerror=null;img.src=blockFallback(item.name)};
   el.appendChild(img);
   const enchants=state[el.dataset.slot]?.enchants||[];
   if(enchants.length){
@@ -424,7 +406,8 @@ function renderItems(){
   filtered.forEach(item=>{
     const d=document.createElement("div"); d.className="item";
     if(item.kind==="enchanted") d.classList.add("enchanted-choice");
-    const img=document.createElement("img"); img.crossOrigin="anonymous"; setImageWithFallback(img,item.name);
+    const img=document.createElement("img"); img.crossOrigin="anonymous"; img.src=iconUrl(item.name);
+    img.onerror=()=>{img.onerror=null;img.src=blockFallback(item.name)};
     if(item.kind==="enchanted"){
       const glint=document.createElement("span");
       glint.style.cssText="position:absolute;inset:3px;pointer-events:none;background:linear-gradient(135deg,transparent 25%,rgba(190,140,255,.45),transparent 55%);mix-blend-mode:screen";
@@ -451,4 +434,11 @@ modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("s
 document.getElementById("clear").onclick=()=>{state={};renderState()};
 document.getElementById("save").onclick=async()=>{
   const canvas=await html2canvas(document.getElementById("capture"),{backgroundColor:"#c6c6c6",scale:2,useCORS:true});
-  const a=document.createEleme
+  const a=document.createElement("a");a.download="minecraft-inventar-1.21.11.png";a.href=canvas.toDataURL("image/png");a.click();
+};
+document.getElementById("downloadJson").onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.download="minecraft-inventar.json";a.href=URL.createObjectURL(blob);a.click();URL.revokeObjectURL(a.href);
+};
+document.getElementById("loadJson").onclick=()=>document.getElementById("jsonFile").click();
+document.getElementByI
