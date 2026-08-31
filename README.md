@@ -105,8 +105,12 @@ button:active{border-color:#eee;border-right-color:#222;border-bottom-color:#222
 .enchant-level{margin-left:auto;font-weight:bold}
 .enchant-note{font-size:12px;color:#333;margin-bottom:10px}
 .enchant-item.active{outline:2px solid #fff;filter:brightness(1.15)}
-.enchant-item .enchant-id{font-size:11px;opacity:.75}
+.enchant-item .enchant-id{font-size:11px;opacity:.75}.enchant-actions{margin-top:auto;display:flex;justify-content:flex-end;padding-top:10px}.use-button{background:#4f8f35;font-size:16px;font-weight:bold;padding:10px 24px}.use-button:hover{background:#65aa45}.enchant-actions{margin-top:auto;display:flex;justify-content:flex-end;padding-top:10px}.use-button{background:#4f8f35;font-size:16px;font-weight:bold;padding:10px 24px}.use-button:hover{background:#65aa45}
 .slot.long-pressing{outline:2px solid #fff;filter:brightness(1.2)}
+.enchant-table-corner{position:absolute;right:12px;top:12px;width:66px;height:66px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#777;border:2px solid #333;border-right-color:#eee;border-bottom-color:#eee;box-shadow:inset 2px 2px #aaa,inset -2px -2px #555;z-index:3}
+.enchant-table-corner img{width:52px;height:52px;image-rendering:pixelated}
+.enchant-table-corner:hover{filter:brightness(1.15);outline:2px solid #fff}
+
 
 @media(max-width:600px){
   body{padding:8px}.inventory{padding:8px}
@@ -130,6 +134,9 @@ button:active{border-color:#eee;border-right-color:#222;border-bottom-color:#222
   </div>
 
   <div id="capture" class="inventory">
+    <div class="enchant-table-corner" id="enchantTable" title="Verzauberungstisch – Item zum Verzaubern auswählen">
+      <img src="https://raw.githubusercontent.com/Faithful-Pack/Default-Java/1.21.11/assets/minecraft/textures/block/enchanting_table_side.png" alt="Verzauberungstisch">
+    </div>
     <div class="top">
       <div class="armor">
         <div class="slot" data-slot="helmet"></div>
@@ -168,6 +175,7 @@ button:active{border-color:#eee;border-right-color:#222;border-bottom-color:#222
     </div>
     <div class="enchant-note">Wähle eine Verzauberung und danach die Stufe. Du kannst mehrere Verzauberungen auf dasselbe Item setzen.</div>
     <div id="enchantList"></div>
+    <div class="enchant-actions"><button id="enchantUse" class="use-button">Use</button></div>
   </div>
 </div>
 
@@ -182,6 +190,7 @@ const mainGrid=document.getElementById("mainGrid"), hotbar=document.getElementBy
 const modal=document.getElementById("modal"), itemBox=document.getElementById("items"), search=document.getElementById("search");
 const enchantModal=document.getElementById("enchantModal"), enchantList=document.getElementById("enchantList"), enchantTitle=document.getElementById("enchantTitle");
 let enchantSlot=null;
+let pendingEnchantedItem=null;
 
 function makeSlots(){
   for(let i=0;i<27;i++){const d=document.createElement("div");d.className="slot";d.dataset.slot="main"+i;mainGrid.appendChild(d)}
@@ -344,9 +353,57 @@ function openEnchantMenu(slotKey){
   }
   enchantModal.classList.add("show");
 }
-function closeEnchantMenu(){ enchantModal.classList.remove("show"); enchantSlot=null; }
+function closeEnchantMenu(){ if(enchantSlot==="__enchant_preview__") delete state[enchantSlot]; enchantModal.classList.remove("show"); enchantSlot=null; renderState(); }
 document.getElementById("enchantClose").onclick=closeEnchantMenu;
+document.getElementById("enchantUse").onclick=()=>{
+  if(!enchantSlot || !state[enchantSlot]?.item) return;
+  pendingEnchantedItem={item:state[enchantSlot].item,count:state[enchantSlot].count||1,enchants:[...(state[enchantSlot].enchants||[])]};
+  delete state[enchantSlot];
+  closeEnchantMenu();
+  renderState();
+  document.getElementById("status").textContent="Item bereit. Klicke jetzt auf den gewünschten Inventar-Slot.";
+};
 enchantModal.addEventListener("click",e=>{if(e.target===enchantModal)closeEnchantMenu()});
+
+const enchantTable=document.getElementById("enchantTable");
+enchantTable.addEventListener("click",()=>{
+  selectedSlot=null;
+  search.value="";
+  modal.dataset.mode="enchant";
+  renderEnchantPicker();
+  modal.classList.add("show");
+  setTimeout(()=>search.focus(),50);
+});
+
+function renderEnchantPicker(){
+  const q=search.value.trim().toLowerCase();
+  itemBox.innerHTML="";
+  const filtered=items.filter(x=>{
+    const type=enchantType(x.name);
+    return type && ENCHANTMENTS[type] && (x.name+" "+x.displayName).toLowerCase().includes(q);
+  });
+  const frag=document.createDocumentFragment();
+  filtered.forEach(item=>{
+    const d=document.createElement("div"); d.className="item";
+    const img=document.createElement("img"); img.crossOrigin="anonymous"; img.src=iconUrl(item.name);
+    img.onerror=()=>{img.onerror=null;img.src=blockFallback(item.name)};
+    const tip=document.createElement("span"); tip.className="tip"; tip.textContent=item.displayName;
+    d.append(img,tip);
+    d.onclick=()=>{
+      const type=enchantType(item.name);
+      if(!type || !ENCHANTMENTS[type]) return;
+      const target=Object.keys(state).find(k=>state[k]?.item?.name===item.name);
+      if(target){ openEnchantMenu(target); modal.classList.remove("show"); return; }
+      const temp="__enchant_preview__";
+      state[temp]={item,count:1,enchants:[]};
+      openEnchantMenu(temp);
+      modal.classList.remove("show");
+    };
+    frag.appendChild(d);
+  });
+  itemBox.appendChild(frag);
+  document.getElementById("status").textContent=`${filtered.length} verzauberbare Items • Verzauberungstisch • 1.21.11`;
+}
 
 function setupSlotInteractions(){
   document.querySelectorAll(".slot").forEach(el=>{
@@ -370,75 +427,4 @@ function setupSlotInteractions(){
       startPress();
     });
     el.addEventListener("pointerup",endPress);
-    el.addEventListener("pointercancel",endPress);
-    el.addEventListener("pointerleave",endPress);
-    el.addEventListener("click",e=>{
-      if(long){ long=false; return; }
-      selectedSlot=el.dataset.slot;
-      search.value="";
-      renderItems();
-      modal.classList.add("show");
-      setTimeout(()=>search.focus(),50);
-    });
-    el.addEventListener("contextmenu",e=>{
-      e.preventDefault();
-      delete state[el.dataset.slot];
-      renderState();
-    });
-  });
-}
-
-function renderState(){
-  document.querySelectorAll(".slot").forEach(el=>{
-    const entry=state[el.dataset.slot];
-    setSlot(el,entry?.item||null,entry?.count||1);
-  });
-  setupSlotInteractions();
-}
-
-function renderItems(){
-  const q=search.value.trim().toLowerCase();
-  itemBox.innerHTML="";
-  const normal=items.map(x=>({...x,kind:"normal"}));
-  const all=normal.concat(enchantedItems.map(x=>({...x,kind:"enchanted"})));
-  const filtered=all.filter(x=>(x.name+" "+x.displayName).toLowerCase().includes(q));
-  const frag=document.createDocumentFragment();
-  filtered.forEach(item=>{
-    const d=document.createElement("div"); d.className="item";
-    if(item.kind==="enchanted") d.classList.add("enchanted-choice");
-    const img=document.createElement("img"); img.crossOrigin="anonymous"; img.src=iconUrl(item.name);
-    img.onerror=()=>{img.onerror=null;img.src=blockFallback(item.name)};
-    if(item.kind==="enchanted"){
-      const glint=document.createElement("span");
-      glint.style.cssText="position:absolute;inset:3px;pointer-events:none;background:linear-gradient(135deg,transparent 25%,rgba(190,140,255,.45),transparent 55%);mix-blend-mode:screen";
-      d.appendChild(glint);
-      const badge=document.createElement("span"); badge.className="ench-badge"; badge.textContent="✦"; d.appendChild(badge);
-    }
-    const tip=document.createElement("span"); tip.className="tip"; tip.textContent=item.displayName;
-    d.append(img,tip);
-    d.onclick=()=>{
-      if(!selectedSlot) return;
-      if(item.kind==="enchanted") state[selectedSlot]={item:item.baseItem,count:1,enchants:[item.enchanted]};
-      else state[selectedSlot]={item:item,count:1};
-      modal.classList.remove("show"); renderState();
-    };
-    frag.appendChild(d);
-  });
-  itemBox.appendChild(frag);
-  document.getElementById("status").textContent=`${items.length} normale Items + ${enchantedItems.length} verzauberte Varianten • ${filtered.length} Treffer • 1.21.11`;
-}
-
-search.addEventListener("input",renderItems);
-document.getElementById("close").onclick=()=>modal.classList.remove("show");
-modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("show")});
-document.getElementById("clear").onclick=()=>{state={};renderState()};
-document.getElementById("save").onclick=async()=>{
-  const canvas=await html2canvas(document.getElementById("capture"),{backgroundColor:"#c6c6c6",scale:2,useCORS:true});
-  const a=document.createElement("a");a.download="minecraft-inventar-1.21.11.png";a.href=canvas.toDataURL("image/png");a.click();
-};
-document.getElementById("downloadJson").onclick=()=>{
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
-  const a=document.createElement("a");a.download="minecraft-inventar.json";a.href=URL.createObjectURL(blob);a.click();URL.revokeObjectURL(a.href);
-};
-document.getElementById("loadJson").onclick=()=>document.getElementById("jsonFile").click();
-document.getElementByI
+    el.addEventListen
