@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Yoshi's Inventar Manager – Minecraft 1.21.11</title>
+<meta name="description" content="Yoshi's Inventar Manager: Minecraft 1.21.11 Inventar-Builder mit Items, Rüstung, Offhand und Verzauberungen.">
+<meta name="keywords" content="Yoshi's Inventar Manager, Minecraft Inventar Manager, Minecraft Inventar Builder, Minecraft 1.21.11, Inventar Editor">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#18232e">
+<meta property="og:title" content="Yoshi's Inventar Manager">
+<meta property="og:description" content="Minecraft 1.21.11 Inventar-Manager mit Items, Rüstung, Offhand und Verzauberungen.">
+<meta property="og:type" content="website">
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"WebApplication",
+  "name":"Yoshi's Inventar Manager",
+  "description":"Minecraft 1.21.11 Inventar-Manager zum Zusammenstellen von Items, Rüstung, Offhand und Verzauberungen.",
+  "applicationCategory":"GameApplication",
+  "operatingSystem":"Web Browser",
+  "inLanguage":"de"
+}
+</script>
+<style>
+:root{
+  --mc:#8b8b8b; --mc-dark:#373737; --slot:#8b8b8b; --slot-hi:#c6c6c6;
+  --panel:#c6c6c6; --panel-dark:#555; --green:#5a9b3a;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; font-family:Arial,sans-serif;
+  background:radial-gradient(circle at 50% 15%,#354d63,#18232e 65%);
+  color:#fff; display:flex; justify-content:center; padding:24px;
+}
+.wrap{width:min(1050px,100%)}
+h1{text-align:center;margin:0 0 18px;text-shadow:3px 3px #222;font-size:28px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:14px}
+button,input{font:inherit}
+button{
+  border:2px solid #222;border-right-color:#eee;border-bottom-color:#eee;
+  background:#777;color:#fff;padding:8px 12px;cursor:pointer;text-shadow:1px 1px #222;
+}
+button:hover{background:#909090}
+button:active{border-color:#eee;border-right-color:#222;border-bottom-color:#222}
+.inventory{
+  width:min(720px,100%); margin:auto; background:#c6c6c6; padding:16px;
+  border:3px solid #222; border-right-color:#fff;border-bottom-color:#fff;
+  box-shadow:0 12px 35px #0008;
+}
+.top{display:grid;grid-template-columns:repeat(2,52px) 1fr 52px;gap:7px;align-items:center;margin-bottom:14px}
+.avatar{
+  grid-column:3; grid-row:1 / span 4; justify-self:center;
+  width:105px;height:150px;display:flex;align-items:center;justify-content:center;
+  color:#333;font-weight:bold;background:linear-gradient(#ddd,#aaa);
+  border:2px solid #555;opacity:.65;
+}
+.armor{grid-column:1;display:flex;flex-direction:column;gap:7px}
+.offhand{grid-column:4;grid-row:3}
+.slot{
+  width:52px;height:52px;background:#8b8b8b;
+  border:2px solid #373737;border-top-color:#555;border-left-color:#555;
+  box-shadow:inset 2px 2px #c6c6c6,inset -2px -2px #666;
+  display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;
+}
+.slot:hover{filter:brightness(1.15)}
+.slot img{width:44px;height:44px;image-rendering:pixelated;object-fit:contain}
+.count{position:absolute;right:2px;bottom:0;font-weight:bold;font-size:18px;color:#fff;text-shadow:2px 2px #111}
+.hotbar,.main-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:5px}
+.main-grid{margin-bottom:7px}
+.hotbar .slot{width:auto}
+.main-grid .slot{width:auto}
+.label{color:#333;font-size:12px;text-align:center;margin:3px 0 6px}
+.status{text-align:center;color:#222;font-size:13px;margin-top:10px}
+.modal{
+  position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;padding:15px;z-index:5;
+}
+.modal.show{display:flex}
+.picker{
+  width:min(900px,100%);height:min(720px,92vh);background:#c6c6c6;
+  border:3px solid #222;border-right-color:#fff;border-bottom-color:#fff;
+  padding:12px;display:flex;flex-direction:column;color:#222;
+}
+.picker-head{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+#search{flex:1;padding:9px;border:2px solid #555;background:#eee;color:#111}
+#items{overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:5px;padding:5px}
+.item{
+  height:68px;background:#8b8b8b;border:2px solid #373737;border-top-color:#555;border-left-color:#555;
+  display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;
+}
+.item:hover{background:#9e9e9e}
+.item img{width:48px;height:48px;image-rendering:pixelated}
+.tip{
+  position:absolute;left:50%;bottom:100%;transform:translateX(-50%);display:none;
+  background:#111;color:#fff;padding:5px 7px;white-space:nowrap;font-size:12px;z-index:9;
+}
+.item:hover .tip{display:block}
+.small{font-size:12px;color:#333}
+#loading{font-weight:bold}
+.enchant-modal .picker{height:min(620px,88vh)}
+.enchant-title{font-size:20px;font-weight:bold;margin-bottom:6px;color:#222}
+.enchant-item{display:flex;align-items:center;gap:10px;background:#777;color:#fff;border:2px solid #333;padding:8px;margin-bottom:6px;cursor:pointer}
+.enchant-item:hover{background:#929292}
+.enchant-item img{width:42px;height:42px;image-rendering:pixelated}
+.enchant-level{margin-left:auto;font-weight:bold}
+.enchant-note{font-size:12px;color:#333;margin-bottom:10px}
+.enchant-item.active{outline:2px solid #fff;filter:brightness(1.15)}
+.enchant-item .enchant-id{font-size:11px;opacity:.75}.enchant-actions{margin-top:auto;display:flex;justify-content:flex-end;padding-top:10px}.use-button{background:#4f8f35;font-size:16px;font-weight:bold;padding:10px 24px}.use-button:hover{background:#65aa45}.enchant-actions{margin-top:auto;display:flex;justify-content:flex-end;padding-top:10px}.use-button{background:#4f8f35;font-size:16px;font-weight:bold;padding:10px 24px}.use-button:hover{background:#65aa45}
+.slot.long-pressing{outline:2px solid #fff;filter:brightness(1.2)}
+.enchant-table-corner{position:absolute;right:12px;top:12px;width:66px;height:66px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#777;border:2px solid #333;border-right-color:#eee;border-bottom-color:#eee;box-shadow:inset 2px 2px #aaa,inset -2px -2px #555;z-index:3}
+.enchant-table-corner img{width:52px;height:52px;image-rendering:pixelated}
+.enchant-table-corner:hover{filter:brightness(1.15);outline:2px solid #fff}
+
+
+@media(max-width:600px){
+  body{padding:8px}.inventory{padding:8px}
+  .slot{width:42px;height:42px}.slot img{width:36px;height:36px}
+  .top{grid-template-columns:42px 42px 1fr 42px}.avatar{width:80px;height:120px}
+  .main-grid,.hotbar{gap:3px}.main-grid .slot,.hotbar .slot{width:auto}
+}
+.enchanted-choice{box-shadow:inset 0 0 0 2px rgba(190,140,255,.8)}
+.ench-badge{position:absolute;left:3px;top:2px;font-size:10px;color:#fff;text-shadow:1px 1px #000;z-index:2}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⛏ Yoshi's Inventar Manager</h1>
+  <div class="toolbar">
+    <button id="clear">Inventar leeren</button>
+    <button id="save">Als Bild speichern</button>
+    <button id="downloadJson">Inventar exportieren</button>
+    <button id="loadJson">Inventar importieren</button>
+    <input id="jsonFile" type="file" accept=".json" hidden>
+  </div>
+
+  <div id="capture" class="inventory">
+    <div class="enchant-table-corner" id="enchantTable" title="Verzauberungstisch – Item zum Verzaubern auswählen">
+      <img src="https://raw.githubusercontent.com/Faithful-Pack/Default-Java/1.21.11/assets/minecraft/textures/block/enchanting_table_side.png" alt="Verzauberungstisch">
+    </div>
+    <div class="top">
+      <div class="armor">
+        <div class="slot" data-slot="helmet"></div>
+        <div class="slot" data-slot="chestplate"></div>
+        <div class="slot" data-slot="leggings"></div>
+        <div class="slot" data-slot="boots"></div>
+      </div>
+      <div class="avatar">PLAYER</div>
+      <div class="slot offhand" data-slot="offhand"></div>
+    </div>
+
+    <div class="label">Inventar</div>
+    <div class="main-grid" id="mainGrid"></div>
+    <div class="label">Hotbar</div>
+    <div class="hotbar" id="hotbar"></div>
+    <div class="status" id="status">Lade Minecraft-1.21.11-Items …</div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="picker">
+    <div class="picker-head">
+      <input id="search" placeholder="Item suchen … (z. B. Diamantschwert, Schärfe 5, Mending)">
+      <button id="close">Schließen</button>
+    </div>
+    <div class="small" style="margin:0 0 6px">Klicke ein Item an, um es in den ausgewählten Slot zu legen. Verzauberte Varianten sind direkt über die Suche auswählbar. Rechtsklick auf einen Slot entfernt das Item.</div>
+    <div id="items"></div>
+  </div>
+</div>
+
+<div class="modal enchant-modal" id="enchantModal">
+  <div class="picker">
+    <div class="picker-head">
+      <div class="enchant-title" id="enchantTitle">Item verzaubern</div>
+      <button id="enchantClose">Schließen</button>
+    </div>
+    <div class="enchant-note">Wähle eine Verzauberung und danach die Stufe. Du kannst mehrere Verzauberungen auf dasselbe Item setzen.</div>
+    <div id="enchantList"></div>
+    <div class="enchant-actions"><button id="enchantUse" class="use-button">Use</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+const DATA_URL="https://raw.githubusercontent.com/PrismarineJS/minecraft-data/master/data/pc/1.21.11/items.json";
+const TEX="https://raw.githubusercontent.com/Faithful-Pack/Default-Java/1.21.11/assets/minecraft/textures/item/";
+const BLOCK="https://raw.githubusercontent.com/Faithful-Pack/Default-Java/1.21.11/assets/minecraft/textures/block/";
+
+let items=[], selectedSlot=null, state={};
+const mainGrid=document.getElementById("mainGrid"), hotbar=document.getElementById("hotbar");
+const modal=document.getElementById("modal"), itemBox=document.getElementById("items"), search=document.getElementById("search");
+const enchantModal=document.getElementById("enchantModal"), enchantList=document.getElementById("enchantList"), enchantTitle=document.getElementById("enchantTitle");
+let enchantSlot=null;
+let pendingEnchantedItem=null;
+
+function makeSlots(){
+  for(let i=0;i<27;i++){const d=document.createElement("div");d.className="slot";d.dataset.slot="main"+i;mainGrid.appendChild(d)}
+  for(let i=0;i<9;i++){const d=document.createElement("div");d.className="slot";d.dataset.slot="hotbar"+i;hotbar.appendChild(d)}
+}
+makeSlots();
+renderState();
+
+function iconUrl(name){
+  return TEX+name+".png";
+}
+function blockFallback(name){
+  return BLOCK+name+".png";
+}
+function setSlot(el,item,count=1){
+  el.innerHTML="";
+  el.classList.remove("long-pressed");
+  if(!item)return;
+  const img=document.createElement("img");
+  img.crossOrigin="anonymous";
+  img.alt=item.displayName||item.name;
+  img.src=iconUrl(item.name);
+  img.onerror=()=>{img.onerror=null;img.src=blockFallback(item.name)};
+  el.appendChild(img);
+  const enchants=state[el.dataset.slot]?.enchants||[];
+  if(enchants.length){
+    el.style.filter="drop-shadow(0 0 4px #8a5cff)";
+    const glint=document.createElement("span");glint.className="ench-glint";glint.title=enchants.map(e=>e.name+" "+e.level).join(", ");
+    glint.style.cssText="position:absolute;inset:2px;border:2px solid rgba(150,90,255,.65);pointer-events:none";
+    el.appendChild(glint);
+  } else el.style.filter="";
+  if(count>1){const c=document.createElement("span");c.className="count";c.textContent=count;el.appendChild(c)}
+}
+
+
+const ENCHANTMENTS = {
+  protection:[
+    ["Schutz","protection",4],["Feuerschutz","fire_protection",4],["Explosionsschutz","blast_protection",4],
+    ["Schusssicher","projectile_protection",4],["Haltbarkeit","unbreaking",3],["Reparatur","mending",1],["Bindungsfluch","binding_curse",1],["Fluch des Verschwindens","vanishing_curse",1]
+  ],
+  helmet:[
+    ["Atmung","respiration",3],["Wasseraffinität","aqua_affinity",1],["Dornen","thorns",3]
+  ],
+  boots:[
+    ["Federfall","feather_falling",4],["Wasserläufer","depth_strider",3],["Eisläufer","frost_walker",2],["Seelenläufer","soul_speed",3],["Schnellschleichen","swift_sneak",3],["Dornen","thorns",3]
+  ],
+  leggings:[["Schnellschleichen","swift_sneak",3],["Dornen","thorns",3]],
+  sword:[
+    ["Schärfe","sharpness",5],["Bann","smite",5],["Nemesis der Gliederfüßer","bane_of_arthropods",5],["Rückstoß","knockback",2],
+    ["Verbrennung","fire_aspect",2],["Plünderung","looting",3],["Schwungkraft","sweeping_edge",3],["Haltbarkeit","unbreaking",3],["Reparatur","mending",1],["Fluch des Verschwindens","vanishing_curse",1]
+  ],
+  tool:[
+    ["Effizienz","efficiency",5],["Glück","fortune",3],["Behutsamkeit","silk_touch",1],["Haltbarkeit","unbreaking",3],["Reparatur","mending",1],["Fluch des Verschwindens","vanishing_curse",1]
+  ],
+  bow:[
+    ["Stärke","power",5],["Schlag","punch",2],["Flamme","flame",1],["Unendlichkeit","infinity",1],["Haltbarkeit","unbreaking",3],["Reparatur","mending",1]
+  ],
+  crossbow:[
+    ["Schnellladen","quick_charge",3],["Mehrfachschuss","multishot",1],["Durchschuss","piercing",4],["Haltbarkeit","unbreaking",3],["Reparatur","mending",1]
+  ],
+  trident:[
+    ["Treue","loyalty",3],["Durchbohren","impaling",5],["Sog","riptide",3],["Entladung","channeling",1],["Haltbarkeit","unbreaking",3],["Reparatur","mending",1]
+  ],
+  fishing:[
+    ["Glück des Meeres","luck_of_the_sea",3],["Köder","lure",3],["Haltbarkeit","unbreaking",3],["Reparatur","mending",1]
+  ],
+  elytra:[["Haltbarkeit","unbreaking",3],["Reparatur","mending",1],["Fluch des Verschwindens","vanishing_curse",1]],
+  shield:[["Haltbarkeit","unbreaking",3],["Reparatur","mending",1],["Fluch des Verschwindens","vanishing_curse",1]],
+  mace:[
+    ["Dichte","density",5],["Durchbruch","breach",4],["Windstoß","wind_burst",3],["Haltbarkeit","unbreaking",3],["Reparatur","mending",1]
+  ]
+};
+
+function enchantType(name){
+  if(!name)return null;
+  if(/helmet$/.test(name) || /skull$/.test(name) || name==="turtle_helmet") return "helmet";
+  if(/chestplate$/.test(name)) return "protection";
+  if(/leggings$/.test(name)) return "leggings";
+  if(/boots$/.test(name)) return "boots";
+  if(name==="elytra") return "elytra";
+  if(name==="shield") return "shield";
+  if(name==="bow") return "bow";
+  if(name==="crossbow") return "crossbow";
+  if(name==="trident") return "trident";
+  if(name==="fishing_rod") return "fishing";
+  if(name==="mace") return "mace";
+  if(/sword$/.test(name)) return "sword";
+  if(/(pickaxe|axe|shovel|hoe)$/.test(name)) return "tool";
+  return null;
+}
+
+
+// Jede mögliche Verzauberung ist als eigener Such-Treffer vorhanden.
+// Beim Anklicken wird das Basis-Item mit dieser Verzauberung in den Slot gelegt.
+function buildEnchantedItems(){
+  const out=[];
+  for(const base of items){
+    const type=enchantType(base.name);
+    if(!type || !ENCHANTMENTS[type]) continue;
+    for(const [enchName, id, max] of ENCHANTMENTS[type]){
+      for(let level=1; level<=max; level++){
+        out.push({
+          name:base.name,
+          displayName:`${base.displayName} — ${enchName} ${level}`,
+          baseItem:base,
+          enchanted:{name:enchName,id,level}
+        });
+      }
+    }
+  }
+  return out;
+}
+let enchantedItems=[];
+
+
+function openEnchantMenu(slotKey){
+  const entry=state[slotKey];
+  if(!entry || !entry.item) return;
+  const type=enchantType(entry.item.name);
+  if(!type || !ENCHANTMENTS[type]) return;
+  enchantSlot=slotKey;
+  enchantTitle.textContent=`Verzaubern: ${entry.item.displayName || entry.item.name}`;
+  enchantList.innerHTML="";
+  const current=entry.enchants||[];
+  for(const [name,id,max] of ENCHANTMENTS[type]){
+    const row=document.createElement("div");
+    row.className="enchant-item";
+    const icon=document.createElement("img");
+    icon.crossOrigin="anonymous";
+    icon.src=iconUrl(entry.item.name);
+    icon.onerror=()=>{icon.onerror=null;icon.src=blockFallback(entry.item.name)};
+    const text=document.createElement("div");
+    const existing=current.find(e=>e.id===id);
+    text.innerHTML=`<div><b>${name}</b></div><div class="enchant-id">${existing ? "Aktuell: "+existing.level : "Nicht angewendet"}</div>`;
+    const levels=document.createElement("div");
+    levels.className="enchant-level";
+    for(let level=1;level<=max;level++){
+      const b=document.createElement("button");
+      b.textContent=level;
+      b.style.marginLeft="4px";
+      b.onclick=(ev)=>{
+        ev.stopPropagation();
+        const next=(state[enchantSlot].enchants||[]).filter(e=>e.id!==id);
+        next.push({name,id,level});
+        state[enchantSlot].enchants=next;
+        renderState();
+        openEnchantMenu(enchantSlot);
+      };
+      levels.appendChild(b);
+    }
+    row.append(icon,text,levels);
+    row.onclick=()=>{
+      const next=(state[enchantSlot].enchants||[]).filter(e=>e.id!==id);
+      if(existing) state[enchantSlot].enchants=next;
+      else state[enchantSlot].enchants=[...next,{name,id,level:1}];
+      renderState();
+      openEnchantMenu(enchantSlot);
+    };
+    enchantList.appendChild(row);
+  }
+  enchantModal.classList.add("show");
+}
+function closeEnchantMenu(){ if(enchantSlot==="__enchant_preview__") delete state[enchantSlot]; enchantModal.classList.remove("show"); enchantSlot=null; renderState(); }
+document.getElementById("enchantClose").onclick=closeEnchantMenu;
+document.getElementById("enchantUse").onclick=()=>{
+  if(!enchantSlot || !state[enchantSlot]?.item) return;
+  pendingEnchantedItem={item:state[enchantSlot].item,count:state[enchantSlot].count||1,enchants:[...(state[enchantSlot].enchants||[])]};
+  delete state[enchantSlot];
+  closeEnchantMenu();
+  renderState();
+  document.getElementById("status").textContent="Item bereit. Klicke jetzt auf den gewünschten Inventar-Slot.";
+};
+enchantModal.addEventListener("click",e=>{if(e.target===enchantModal)closeEnchantMenu()});
+
+const enchantTable=document.getElementById("enchantTable");
+enchantTable.addEventListener("click",()=>{
+  selectedSlot=null;
+  search.value="";
+  modal.dataset.mode="enchant";
+  renderEnchantPicker();
+  modal.classList.add("show");
+  setTimeout(()=>search.focus(),50);
+});
+
+function renderEnchantPicker(){
+  const q=search.value.trim().toLowerCase();
+  itemBox.innerHTML="";
+  const filtered=items.filter(x=>{
+    const type=enchantType(x.name);
+    return type && ENCHANTMENTS[type] && (x.name+" "+x.displayName).toLowerCase().includes(q);
+  });
+  const frag=document.createDocumentFragment();
+  filtered.forEach(item=>{
+    const d=document.createElement("div"); d.className="item";
+    const img=document.createElement("img"); img.crossOrigin="anonymous"; img.src=iconUrl(item.name);
+    img.onerror=()=>{img.onerror=null;img.src=blockFallback(item.name)};
+    const tip=document.createElement("span"); tip.className="tip"; tip.textContent=item.displayName;
+    d.append(img,tip);
+    d.onclick=()=>{
+      const type=enchantType(item.name);
+      if(!type || !ENCHANTMENTS[type]) return;
+      const target=Object.keys(state).find(k=>state[k]?.item?.name===item.name);
+      if(target){ openEnchantMenu(target); modal.classList.remove("show"); return; }
+      const temp="__enchant_preview__";
+      state[temp]={item,count:1,enchants:[]};
+      openEnchantMenu(temp);
+      modal.classList.remove("show");
+    };
+    frag.appendChild(d);
+  });
+  itemBox.appendChild(frag);
+  document.getElementById("status").textContent=`${filtered.length} verzauberbare Items • Verzauberungstisch • 1.21.11`;
+}
+
+function setupSlotInteractions(){
+  document.querySelectorAll(".slot").forEach(el=>{
+    if(el.dataset.interactionsReady) return;
+    el.dataset.interactionsReady="1";
+    let timer=null, long=false;
+    const startPress=()=>{
+      long=false;
+      timer=setTimeout(()=>{
+        long=true;
+        const entry=state[el.dataset.slot];
+        if(entry?.item && enchantType(entry.item.name)) openEnchantMenu(el.dataset.slot);
+      },650);
+    };
+    const endPress=()=>{
+      if(timer) clearTimeout(timer);
+      timer=null;
+    };
+    el.addEventListener("pointerdown",e=>{
+      if(e.button!==0) return;
+      startPress();
+    });
+    el.addEventListener("pointerup",endPress);
+    el.addEventListener("pointercancel",endPress);
+    el.addEventListener("pointerleave",endPress);
+    el.addEventListener("click",e=>{
+      if(long){ long=false; return; }
+      if(pendingEnchantedItem){
+        state[el.dataset.slot]={item:pendingEnchantedItem.item,count:pendingEnchantedItem.count,enchants:[...(pendingEnchantedItem.enchants||[])]};
+        selectedSlot=el.dataset.slot;
+        pendingEnchantedItem=null;
+        renderState();
+        document.getElementById("status").textContent="Item mit Enchantments platziert.";
+        return;
+      }
+      selectedSlot=el.dataset.slot;
+      modal.dataset.mode="normal";
+      search.value="";
+      renderItems();
+      modal.classList.add("show");
+      setTimeout(()=>search.focus(),50);
+    });
+    el.addEventListener("contextmenu",e=>{
+      e.preventDefault();
+      delete state[el.dataset.slot];
+      renderState();
+    });
+  });
+}
+
+function renderState(){
+  document.querySelectorAll(".slot").forEach(el=>{
+    const entry=state[el.dataset.slot];
+    setSlot(el,entry?.item||null,entry?.count||1);
+  });
+  setupSlotInteractions();
+}
+
+function renderItems(){
+  const q=search.value.trim().toLowerCase();
+  itemBox.innerHTML="";
+  const normal=items.map(x=>({...x,kind:"normal"}));
+  const all=normal.concat(enchantedItems.map(x=>({...x,kind:"enchanted"})));
+  const filtered=all.filter(x=>(x.name+" "+x.displayName).toLowerCase().includes(q));
+  const frag=document.createDocumentFragment();
+  filtered.forEach(item=>{
+    const d=document.createElement("div"); d.className="item";
+    if(item.kind==="enchanted") d.classList.add("enchanted-choice");
+    const img=document.createElement("img"); img.crossOrigin="anonymous"; img.src=iconUrl(item.name);
+    img.onerror=()=>{img.onerror=null;img.src=blockFallback(item.name)};
+    if(item.kind==="enchanted"){
+      const glint=document.createElement("span");
+      glint.style.cssText="position:absolute;inset:3px;pointer-events:none;background:linear-gradient(135deg,transparent 25%,rgba(190,140,255,.45),transparent 55%);mix-blend-mode:screen";
+      d.appendChild(glint);
+      const badge=document.createElement("span"); badge.className="ench-badge"; badge.textContent="✦"; d.appendChild(badge);
+    }
+    const tip=document.createElement("span"); tip.className="tip"; tip.textContent=item.displayName;
+    d.append(img,tip);
+    d.onclick=()=>{
+      if(!selectedSlot) return;
+      if(item.kind==="enchanted") state[selectedSlot]={item:item.baseItem,count:1,enchants:[item.enchanted]};
+      else state[selectedSlot]={item:item,count:1};
+      modal.classList.remove("show"); renderState();
+    };
+    frag.appendChild(d);
+  });
+  itemBox.appendChild(frag);
+  document.getElementById("status").textContent=`${items.length} normale Items + ${enchantedItems.length} verzauberte Varianten • ${filtered.length} Treffer • 1.21.11`;
+}
+
+search.addEventListener("input",()=>{if(modal.dataset.mode==="enchant") renderEnchantPicker(); else renderItems();});
+document.getElementById("close").onclick=()=>modal.classList.remove("show");
+modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("show")});
+document.getElementById("clear").onclick=()=>{state={};renderState()};
+document.getElementById("save").onclick=async()=>{
+  const canvas=await html2canvas(document.getElementById("capture"),{backgroundColor:"#c6c6c6",scale:2,useCORS:true});
+  const a=document.createElement("a");a.download="minecraft-inventar-1.21.11.png";a.href=canvas.toDataURL("image/png");a.click();
+};
+document.getElementById("downloadJson").onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.download="minecraft-inventar.json";a.href=URL.createObjectURL(blob);a.click();URL.revokeObjectURL(a.href);
+};
+document.getElementById("loadJson").onclick=()=>document.getElementById("jsonFile").click();
+document.getElementById("jsonFile").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);renderState()}catch{alert("Ungültige Inventar-Datei.")}};r.readAsText(f);
+};
+
+async function loadItems(){
+  try{
+    const r=await fetch(DATA_URL); if(!r.ok)throw new Error("HTTP "+r.status);
+    items=await r.json();
+    enchantedItems=buildEnchantedItems();
+    document.getElementById("status").textContent=`${items.length} normale Items + ${enchantedItems.length} verzauberte Varianten • Version 1.21.11`;
+  }catch(err){
+    document.getElementById("status").textContent="Items konnten nicht geladen werden. Bitte Internetverbindung prüfen.";
+    console.error(err);
+  }
+}
+loadItems();
+</script>
+</body>
+</html>
